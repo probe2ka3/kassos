@@ -1,0 +1,17 @@
+# secrets — NE JAMAIS committer
+.dev.vars
+.env
+.env.*
+*.token
+*.secret
+.wrangler/
+wrangler.toml.local
+
+# temp / local
+_*.py
+_backup_*.html
+_live_check.html
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
