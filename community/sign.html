@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>kassos — wallet signature test</title>
+<meta name="theme-color" content="#0B1220" />
+<link rel="icon" href="/favicon.png" />
+<style>
+:root{--bg:#0B1220;--card:#101F2E;--ink:#E8EFF5;--muted:#94A7B8;--faint:#62788B;--line:rgba(255,255,255,.12);--teal:#49EACB;--teal2:#70C7BA;--amber:#FFB454;--danger:#F0997B}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6}
+.wrap{max-width:560px;margin:0 auto;padding:28px 20px}
+h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+p{color:var(--muted);margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+.status{font-size:14px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);margin-bottom:14px}
+.ok{color:var(--teal2)}.bad{color:var(--danger)}
+button{width:100%;font-size:16px;font-weight:700;border:none;border-radius:11px;padding:14px;cursor:pointer;background:var(--teal);color:#06231d;margin-top:10px}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.45}
+pre{white-space:pre-wrap;word-break:break-all;background:#0B1220;border:1px solid var(--line);border-radius:10px;padding:11px;font-size:12px;color:var(--ink);margin:6px 0}
+.lbl{font-size:12px;color:var(--faint);margin-top:10px}
+.muted{color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Wallet signature test</h1>
+  <p>Open this page <strong>inside the KasWare app browser</strong> (or with the KasWare desktop extension). Connect your wallet and sign the test message — it is <strong>free</strong> and sends <strong>no transaction</strong>. Then copy the result.</p>
+
+  <div id="status" class="status">Looking for KasWare…</div>
+
+  <div class="card">
+    <button id="connect">Connect KasWare</button>
+    <div id="addrLine" class="lbl" style="display:none"></div>
+  </div>
+
+  <div id="msgCard" class="card" style="display:none">
+    <div class="lbl">Message to sign</div>
+    <pre id="msg"></pre>
+    <button id="sign">Sign message</button>
+  </div>
+
+  <div id="resCard" class="card" style="display:none">
+    <div class="lbl">Signature</div>
+    <pre id="sig"></pre>
+    <button id="copy" class="ghost">Copy everything for Claude</button>
+    <div class="muted" style="margin-top:8px">Paste the copied block back in the chat.</div>
+  </div>
+</div>
+
+<script>
+var TEST_MSG = "kassos.art verification test";
+var addr = "";
+function el(id){ return document.getElementById(id); }
+function has(){ return typeof window.kasware !== "undefined" && window.kasware; }
+function status(t, cls){ var s=el("status"); s.textContent=t; s.className="status"+(cls?" "+cls:""); }
+el("msg").textContent = TEST_MSG;
+
+function check(){ if(has()){ status("KasWare detected ✓","ok"); } else { status("KasWare not found — open this page in the KasWare app browser, or install the KasWare extension.","bad"); } }
+var tries=0; (function poll(){ if(has()||tries>12){ check(); return; } tries++; setTimeout(poll,250); })();
+
+el("connect").addEventListener("click", async function(){
+  if(!has()){ check(); return; }
+  try{
+    var accts = await window.kasware.requestAccounts();
+    addr = (accts && accts[0]) || "";
+    el("addrLine").style.display="block";
+    el("addrLine").textContent = "Address: " + addr;
+    el("msgCard").style.display="block";
+    status("Connected ✓","ok");
+  }catch(e){ status("Connect failed: " + (e && e.message ? e.message : e), "bad"); }
+});
+
+el("sign").addEventListener("click", async function(){
+  try{
+    var sig = await window.kasware.signMessage(TEST_MSG);
+    el("sig").textContent = sig;
+    el("resCard").style.display="block";
+    window.__payload = JSON.stringify({ address: addr, message: TEST_MSG, signature: sig });
+    status("Signed ✓ — copy the block below.","ok");
+  }catch(e){ status("Sign failed: " + (e && e.message ? e.message : e), "bad"); }
+});
+
+el("copy").addEventListener("click", async function(){
+  try{ await navigator.clipboard.writeText(window.__payload); el("copy").textContent="Copied ✓"; }
+  catch(e){
+    var r=document.createRange(); r.selectNode(el("sig"));
+    var s=window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+});
+</script>
+</body>
+</html>
